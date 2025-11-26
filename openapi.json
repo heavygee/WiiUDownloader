@@ -70,6 +70,16 @@
             }
           },
           {
+            "name": "format",
+            "in": "query",
+            "description": "Filter by download format",
+            "schema": {
+              "type": "string",
+              "enum": ["cia", "3ds", "nsp", "xci", "iso", "wbfs", "content", "all"],
+              "default": "all"
+            }
+          },
+          {
             "name": "region",
             "in": "query",
             "description": "Filter by geographic region",
@@ -357,9 +367,15 @@
             "description": "Nintendo platform",
             "example": "Wii U",
             "enum": ["Wii U", "3DS", "Switch", "vWii", "Wii", "Unknown"]
+          },
+          "format": {
+            "type": "string",
+            "description": "Download format/container",
+            "example": "CIA",
+            "enum": ["CIA", "3DS", "CCI", "NSP", "XCI", "ISO", "WBFS", "Content", "Unknown"]
           }
         },
-        "required": ["id", "name", "region", "type", "platform"]
+        "required": ["id", "name", "region", "type", "platform", "format"]
       },
       "TitleResponse": {
         "type": "object",
@@ -389,9 +405,15 @@
             "description": "Nintendo platform",
             "example": "Wii U",
             "enum": ["Wii U", "3DS", "Switch", "vWii", "Wii", "Unknown"]
+          },
+          "format": {
+            "type": "string",
+            "description": "Download format/container",
+            "example": "CIA",
+            "enum": ["CIA", "3DS", "CCI", "NSP", "XCI", "ISO", "WBFS", "Content", "Unknown"]
           }
         },
-        "required": ["id", "name", "region", "type", "platform"]
+        "required": ["id", "name", "region", "type", "platform", "format"]
       },
       "DownloadRequest": {
         "type": "object",

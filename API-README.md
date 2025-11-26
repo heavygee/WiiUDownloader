@@ -62,9 +62,21 @@ GET /api/titles?platform=wiiu&category=game&region=usa&search=mario
 - Switch content: `?platform=switch`
 - All platforms: `?platform=all` (default)
 
+**Format Examples:**
+- CIA files (3DS): `?format=cia`
+- NSP files (Switch): `?format=nsp`
+- ISO files (Wii): `?format=iso`
+- Content folders (Wii U): `?format=content`
+- All formats: `?format=all` (default)
+
+**Combined Filtering:**
+- 3DS CIA games: `?platform=3ds&format=cia&category=game`
+- Switch NSP updates: `?platform=switch&format=nsp&category=update`
+
 **Query Parameters:**
 - `category` (optional): `game`, `update`, `dlc`, `demo`, `all` (default: `game`)
 - `platform` (optional): `wiiu`, `3ds`, `switch`, `vwii`, `wii`, `all` (default: `all`)
+- `format` (optional): `cia`, `3ds`, `nsp`, `xci`, `iso`, `wbfs`, `content`, `all` (default: `all`)
 - `region` (optional): `japan`, `usa`, `europe`, `all` (default: `all`)
 - `search` (optional): Search term for title names
 
@@ -78,14 +90,16 @@ GET /api/titles?platform=wiiu&category=game&region=usa&search=mario
       "name": "Super Mario 3D World",
       "region": "USA",
       "type": "Game",
-      "platform": "Wii U"
+      "platform": "Wii U",
+      "format": "Content"
     },
     {
       "id": "00050000101C9600",
       "name": "Super Mario 3D World",
       "region": "Europe",
       "type": "Game",
-      "platform": "Wii U"
+      "platform": "Wii U",
+      "format": "Content"
     }
   ]
 }
@@ -110,7 +124,8 @@ GET /api/titles/00050000101C9500
   "name": "Super Mario 3D World",
   "region": "USA",
   "type": "Game",
-  "platform": "Wii U"
+  "platform": "Wii U",
+  "format": "Content"
 }
 ```
 

@@ -236,6 +236,11 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 		platform = "all"
 	}
 
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "all"
+	}
+
 	var categoryFlag uint8
 	switch category {
 	case "game":
@@ -313,6 +318,42 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 		entries = filtered
 	}
 
+	// Filter by format if specified
+	if format != "all" {
+		var allowedFormats []string
+		switch format {
+		case "cia":
+			allowedFormats = []string{"CIA"}
+		case "3ds":
+			allowedFormats = []string{"3DS", "CCI"}
+		case "nsp":
+			allowedFormats = []string{"NSP"}
+		case "xci":
+			allowedFormats = []string{"XCI"}
+		case "iso":
+			allowedFormats = []string{"ISO"}
+		case "wbfs":
+			allowedFormats = []string{"WBFS"}
+		case "content":
+			allowedFormats = []string{"Content"}
+		default:
+			http.Error(w, "Invalid format", http.StatusBadRequest)
+			return
+		}
+
+		filtered := make([]wiiudownloader.TitleEntry, 0)
+		for _, entry := range entries {
+			titleFormat := getFormatFromTitleID(entry.TitleID)
+			for _, allowedFormat := range allowedFormats {
+				if titleFormat == allowedFormat {
+					filtered = append(filtered, entry)
+					break
+				}
+			}
+		}
+		entries = filtered
+	}
+
 	// Filter by region if specified
 	if region != "" && region != "all" {
 		var regionMask uint8
@@ -357,6 +398,7 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 			"region":   wiiudownloader.GetFormattedRegion(entry.Region),
 			"type":     wiiudownloader.GetFormattedKind(entry.TitleID),
 			"platform": getPlatformFromTitleID(entry.TitleID),
+			"format":   getFormatFromTitleID(entry.TitleID),
 		}
 	}
 
@@ -392,6 +434,7 @@ func (s *Server) handleGetTitle(w http.ResponseWriter, r *http.Request) {
 		"region":   wiiudownloader.GetFormattedRegion(entry.Region),
 		"type":     wiiudownloader.GetFormattedKind(entry.TitleID),
 		"platform": getPlatformFromTitleID(entry.TitleID),
+		"format":   getFormatFromTitleID(entry.TitleID),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -676,6 +719,33 @@ func getPlatformFromTitleID(titleID uint64) string {
 		return "Switch"
 	case 0x00010000:
 		return "Wii"
+	default:
+		return "Unknown"
+	}
+	return "Unknown"
+}
+
+func getFormatFromTitleID(titleID uint64) string {
+	titleHigh := titleID >> 32
+	switch titleHigh & 0xFFFFFFF0 {
+	case 0x00050000:
+		// Wii U content is downloaded as individual files/content
+		return "Content"
+	case 0x00040000:
+		// 3DS titles are commonly distributed as CIA files
+		return "CIA"
+	case 0x00000000:
+		if titleHigh == 0x00000007 {
+			return "Content"
+		}
+	case 0x00070000:
+		return "Content"
+	case 0x01000000:
+		// Switch titles are commonly NSP format
+		return "NSP"
+	case 0x00010000:
+		// Wii titles are commonly ISO format
+		return "ISO"
 	default:
 		return "Unknown"
 	}
