@@ -154,6 +154,9 @@ func (s *Server) setupRoutes() {
 	// API routes
 	api := s.router.PathPrefix("/api").Subrouter()
 
+	// OpenAPI spec
+	api.HandleFunc("/openapi.json", s.handleOpenAPISpec).Methods("GET")
+
 	// Titles
 	api.HandleFunc("/titles", s.handleListTitles).Methods("GET")
 	api.HandleFunc("/titles/{id}", s.handleGetTitle).Methods("GET")
@@ -192,6 +195,34 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (s *Server) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Serve the OpenAPI spec file
+	specFile := "/app/openapi.json"
+	if _, err := os.Stat(specFile); os.IsNotExist(err) {
+		// Fallback: generate basic spec info
+		spec := map[string]interface{}{
+			"openapi": "3.0.3",
+			"info": map[string]interface{}{
+				"title":   "WiiUDownloader API",
+				"version": "1.0.0",
+			},
+			"servers": []map[string]interface{}{
+				{
+					"url":         fmt.Sprintf("http://%s/api", r.Host),
+					"description": "API Server",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(spec)
+		return
+	}
+
+	http.ServeFile(w, r, specFile)
+}
+
 func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 	if category == "" {
@@ -200,6 +231,10 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 
 	search := r.URL.Query().Get("search")
 	region := r.URL.Query().Get("region")
+	platform := r.URL.Query().Get("platform")
+	if platform == "" {
+		platform = "all"
+	}
 
 	var categoryFlag uint8
 	switch category {
@@ -219,6 +254,64 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entries := wiiudownloader.GetTitleEntries(categoryFlag)
+
+	// Filter by platform if specified
+	if platform != "all" {
+		var platformPrefixes []uint64
+		switch platform {
+		case "wiiu":
+			platformPrefixes = []uint64{
+				0x00050000, // Game
+				0x00050002, // Demo
+				0x00050010, // System App
+				0x0005001B, // System Data
+				0x00050030, // System Applet
+				0x0005000C, // DLC
+				0x0005000E, // Update
+			}
+		case "vwii":
+			platformPrefixes = []uint64{
+				0x00000007, // vWii IOS
+				0x00070002, // vWii System App
+				0x00070008, // vWii System
+			}
+		case "switch":
+			platformPrefixes = []uint64{
+				0x01000000, // Game
+				0x01000002, // Demo
+				0x01000080, // System App
+				0x01000081, // System Data
+				0x01000082, // System Applet
+				0x0100000C, // DLC
+				0x0100000E, // Update
+			}
+		case "3ds":
+			platformPrefixes = []uint64{
+				0x00040000, // Game
+				0x00040002, // Demo
+				0x00040010, // System App
+				0x0004001B, // System Data
+				0x00040030, // System Applet
+				0x0004000C, // DLC
+				0x0004000E, // Update
+			}
+		default:
+			http.Error(w, "Invalid platform", http.StatusBadRequest)
+			return
+		}
+
+		filtered := make([]wiiudownloader.TitleEntry, 0)
+		for _, entry := range entries {
+			titleHigh := entry.TitleID >> 32
+			for _, prefix := range platformPrefixes {
+				if titleHigh == prefix {
+					filtered = append(filtered, entry)
+					break
+				}
+			}
+		}
+		entries = filtered
+	}
 
 	// Filter by region if specified
 	if region != "" && region != "all" {
@@ -259,10 +352,11 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 	titles := make([]map[string]interface{}, len(entries))
 	for i, entry := range entries {
 		titles[i] = map[string]interface{}{
-			"id":     fmt.Sprintf("%016X", entry.TitleID),
-			"name":   entry.Name,
-			"region": wiiudownloader.GetFormattedRegion(entry.Region),
-			"type":   wiiudownloader.GetFormattedKind(entry.TitleID),
+			"id":       fmt.Sprintf("%016X", entry.TitleID),
+			"name":     entry.Name,
+			"region":   wiiudownloader.GetFormattedRegion(entry.Region),
+			"type":     wiiudownloader.GetFormattedKind(entry.TitleID),
+			"platform": getPlatformFromTitleID(entry.TitleID),
 		}
 	}
 
@@ -293,10 +387,11 @@ func (s *Server) handleGetTitle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"id":     fmt.Sprintf("%016X", entry.TitleID),
-		"name":   entry.Name,
-		"region": wiiudownloader.GetFormattedRegion(entry.Region),
-		"type":   wiiudownloader.GetFormattedKind(entry.TitleID),
+		"id":       fmt.Sprintf("%016X", entry.TitleID),
+		"name":     entry.Name,
+		"region":   wiiudownloader.GetFormattedRegion(entry.Region),
+		"type":     wiiudownloader.GetFormattedKind(entry.TitleID),
+		"platform": getPlatformFromTitleID(entry.TitleID),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -562,4 +657,27 @@ func equalIgnoreCase(a, b string) bool {
 		}
 	}
 	return true
+}
+
+func getPlatformFromTitleID(titleID uint64) string {
+	titleHigh := titleID >> 32
+	switch titleHigh & 0xFFFFFFF0 { // Mask to get the main platform identifier
+	case 0x00050000:
+		return "Wii U"
+	case 0x00040000:
+		return "3DS"
+	case 0x00000000:
+		if titleHigh == 0x00000007 {
+			return "vWii"
+		}
+	case 0x00070000:
+		return "vWii"
+	case 0x01000000:
+		return "Switch"
+	case 0x00010000:
+		return "Wii"
+	default:
+		return "Unknown"
+	}
+	return "Unknown"
 }

@@ -1,0 +1,551 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WiiUDownloader API",
+    "description": "REST API for downloading Nintendo console games and content. Supports Wii U, 3DS, Switch, and other Nintendo platforms.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "WiiUDownloader",
+      "url": "https://github.com/heavygee/WiiUDownloader"
+    },
+    "license": {
+      "name": "GPLv3",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api",
+      "description": "Local development server"
+    },
+    {
+      "url": "http://localhost/api",
+      "description": "Production server with nginx proxy"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check if the API server is running and healthy",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/titles": {
+      "get": {
+        "summary": "List and search titles",
+        "description": "Get a list of available titles with optional filtering by category, platform, region, and search terms",
+        "operationId": "listTitles",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by content category",
+            "schema": {
+              "type": "string",
+              "enum": ["game", "update", "dlc", "demo", "all"],
+              "default": "game"
+            }
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "description": "Filter by Nintendo platform",
+            "schema": {
+              "type": "string",
+              "enum": ["wiiu", "3ds", "switch", "vwii", "wii", "all"],
+              "default": "all"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "description": "Filter by geographic region",
+            "schema": {
+              "type": "string",
+              "enum": ["japan", "usa", "europe", "all"],
+              "default": "all"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search titles by name (case-insensitive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of titles matching the criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/titles/{titleId}": {
+      "get": {
+        "summary": "Get title information",
+        "description": "Get detailed information about a specific title by its ID",
+        "operationId": "getTitle",
+        "parameters": [
+          {
+            "name": "titleId",
+            "in": "path",
+            "required": true,
+            "description": "Title ID in hexadecimal format (16 characters)",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Title information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid title ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Title not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/download": {
+      "post": {
+        "summary": "Start download",
+        "description": "Start an asynchronous download job for a title",
+        "operationId": "startDownload",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Download job started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadStartedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or title not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/download/{jobId}": {
+      "get": {
+        "summary": "Get download status",
+        "description": "Check the progress and status of a download job",
+        "operationId": "getDownloadStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "description": "Download job ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download job status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel download",
+        "description": "Cancel a running download job",
+        "operationId": "cancelDownload",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "description": "Download job ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot cancel completed or failed job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "healthy"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-26T19:30:00Z"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          }
+        },
+        "required": ["status", "time", "version"]
+      },
+      "TitleListResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Number of titles returned",
+            "example": 150
+          },
+          "titles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TitleSummary"
+            }
+          }
+        },
+        "required": ["count", "titles"]
+      },
+      "TitleSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Title ID in hexadecimal",
+            "example": "00050000101C9500"
+          },
+          "name": {
+            "type": "string",
+            "description": "Title name",
+            "example": "Super Mario 3D World"
+          },
+          "region": {
+            "type": "string",
+            "description": "Available regions",
+            "example": "USA"
+          },
+          "type": {
+            "type": "string",
+            "description": "Content type",
+            "example": "Game"
+          },
+          "platform": {
+            "type": "string",
+            "description": "Nintendo platform",
+            "example": "Wii U",
+            "enum": ["Wii U", "3DS", "Switch", "vWii", "Wii", "Unknown"]
+          }
+        },
+        "required": ["id", "name", "region", "type", "platform"]
+      },
+      "TitleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Title ID in hexadecimal",
+            "example": "00050000101C9500"
+          },
+          "name": {
+            "type": "string",
+            "description": "Title name",
+            "example": "Super Mario 3D World"
+          },
+          "region": {
+            "type": "string",
+            "description": "Available regions",
+            "example": "USA"
+          },
+          "type": {
+            "type": "string",
+            "description": "Content type",
+            "example": "Game"
+          },
+          "platform": {
+            "type": "string",
+            "description": "Nintendo platform",
+            "example": "Wii U",
+            "enum": ["Wii U", "3DS", "Switch", "vWii", "Wii", "Unknown"]
+          }
+        },
+        "required": ["id", "name", "region", "type", "platform"]
+      },
+      "DownloadRequest": {
+        "type": "object",
+        "properties": {
+          "title_id": {
+            "type": "string",
+            "description": "Title ID to download (hexadecimal)",
+            "pattern": "^[0-9A-Fa-f]{16}$",
+            "example": "00050000101C9500"
+          },
+          "decrypt": {
+            "type": "boolean",
+            "description": "Whether to decrypt downloaded contents",
+            "default": false,
+            "example": true
+          },
+          "delete_encrypted": {
+            "type": "boolean",
+            "description": "Delete encrypted files after decryption",
+            "default": false,
+            "example": false
+          }
+        },
+        "required": ["title_id"]
+      },
+      "DownloadStartedResponse": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Unique job identifier for tracking",
+            "example": "00050000101C9500_1643123456"
+          },
+          "status": {
+            "type": "string",
+            "example": "started"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title name",
+            "example": "Super Mario 3D World"
+          }
+        },
+        "required": ["job_id", "status", "title"]
+      },
+      "DownloadStatusResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Job ID",
+            "example": "00050000101C9500_1643123456"
+          },
+          "title_id": {
+            "type": "string",
+            "description": "Title ID being downloaded",
+            "example": "00050000101C9500"
+          },
+          "title_name": {
+            "type": "string",
+            "description": "Title name",
+            "example": "Super Mario 3D World"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "downloading", "completed", "failed", "cancelled"],
+            "example": "downloading"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Download progress percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 45.2
+          },
+          "download_size": {
+            "type": "integer",
+            "description": "Total download size in bytes",
+            "example": 2147483648
+          },
+          "downloaded": {
+            "type": "integer",
+            "description": "Bytes downloaded so far",
+            "example": 972873472
+          },
+          "speed": {
+            "type": "string",
+            "description": "Download speed",
+            "example": "2.1 MB/s"
+          },
+          "eta": {
+            "type": "string",
+            "description": "Estimated time remaining",
+            "example": "15:30"
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Output directory path",
+            "example": "/downloads/00050000101C9500_1643123456"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the download started",
+            "example": "2025-11-26T19:30:00Z"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the download finished (if completed)",
+            "example": "2025-11-26T19:45:30Z"
+          },
+          "decrypt": {
+            "type": "boolean",
+            "description": "Whether decryption was requested",
+            "example": true
+          },
+          "delete_encrypted": {
+            "type": "boolean",
+            "description": "Whether encrypted files were deleted",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message (if status is 'failed')",
+            "example": "Network timeout"
+          }
+        },
+        "required": ["id", "title_id", "title_name", "status", "progress", "download_size", "downloaded", "output_dir", "start_time", "decrypt", "delete_encrypted"]
+      },
+      "CancelResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "cancelled"
+          },
+          "job_id": {
+            "type": "string",
+            "description": "Job ID that was cancelled",
+            "example": "00050000101C9500_1643123456"
+          }
+        },
+        "required": ["status", "job_id"]
+      },
+      "ErrorResponse": {
+        "type": "string",
+        "description": "Error message",
+        "example": "Invalid title ID format"
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "Complete API documentation and examples",
+    "url": "https://github.com/heavygee/WiiUDownloader/blob/main/API-README.md"
+  }
+}

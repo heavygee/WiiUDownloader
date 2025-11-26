@@ -15,6 +15,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Copy OpenAPI spec
+COPY openapi.json /app/openapi.json
+
 # Generate title database if needed
 RUN if [ ! -f "db.go" ]; then \
         apk add --no-cache python3 && \

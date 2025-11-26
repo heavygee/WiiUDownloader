@@ -21,6 +21,18 @@ docker run -p 8080:8080 -v $(pwd)/downloads:/downloads wiiu-api:latest
 - **Direct**: `http://localhost:8080/api/`
 - **With nginx proxy**: `http://localhost/api/`
 
+### OpenAPI Specification
+The API follows the OpenAPI 3.0 specification and includes machine-readable documentation:
+
+- **OpenAPI JSON**: `http://localhost:8080/api/openapi.json`
+- **Static file**: Available in the repository as `openapi.json`
+
+You can import this specification into tools like:
+- Postman
+- Insomnia
+- Swagger UI
+- Your Discord bot's API client
+
 ## API Endpoints
 
 ### Health Check
@@ -38,14 +50,21 @@ GET /health
 ```
 
 ### List Titles
-Get a list of available Wii U titles with optional filtering.
+Get a list of available titles with optional filtering by platform, category, region, and search terms.
 
 ```http
-GET /api/titles?category=game&region=usa&search=mario
+GET /api/titles?platform=wiiu&category=game&region=usa&search=mario
 ```
+
+**Platform Examples:**
+- Wii U games: `?platform=wiiu&category=game`
+- 3DS titles: `?platform=3ds`
+- Switch content: `?platform=switch`
+- All platforms: `?platform=all` (default)
 
 **Query Parameters:**
 - `category` (optional): `game`, `update`, `dlc`, `demo`, `all` (default: `game`)
+- `platform` (optional): `wiiu`, `3ds`, `switch`, `vwii`, `wii`, `all` (default: `all`)
 - `region` (optional): `japan`, `usa`, `europe`, `all` (default: `all`)
 - `search` (optional): Search term for title names
 
@@ -58,13 +77,15 @@ GET /api/titles?category=game&region=usa&search=mario
       "id": "00050000101C9500",
       "name": "Super Mario 3D World",
       "region": "USA",
-      "type": "Game"
+      "type": "Game",
+      "platform": "Wii U"
     },
     {
       "id": "00050000101C9600",
       "name": "Super Mario 3D World",
       "region": "Europe",
-      "type": "Game"
+      "type": "Game",
+      "platform": "Wii U"
     }
   ]
 }
@@ -88,7 +109,8 @@ GET /api/titles/00050000101C9500
   "id": "00050000101C9500",
   "name": "Super Mario 3D World",
   "region": "USA",
-  "type": "Game"
+  "type": "Game",
+  "platform": "Wii U"
 }
 ```
 
