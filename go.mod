@@ -7,6 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/Xpl0itU/dialog v0.0.0-20230805114139-ec888310aded
 	github.com/dustin/go-humanize v1.0.1
+	github.com/gorilla/mux v1.8.1
 	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
 	golang.org/x/crypto v0.42.0
 )
