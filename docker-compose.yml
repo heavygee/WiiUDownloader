@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "8080:8080"
+      - "11235:11235"
     volumes:
       - ./downloads:/downloads
       - ./logs:/logs

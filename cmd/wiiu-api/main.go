@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -254,7 +253,12 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 	case "all":
 		categoryFlag = wiiudownloader.TITLE_CATEGORY_ALL
 	default:
-		http.Error(w, "Invalid category", http.StatusBadRequest)
+		response := map[string]interface{}{
+			"error": "Invalid category. Supported: game, update, dlc, demo, all",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -301,7 +305,12 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 				0x0004000E, // Update
 			}
 		default:
-			http.Error(w, "Invalid platform", http.StatusBadRequest)
+			response := map[string]interface{}{
+				"error": "Invalid platform. Supported: wiiu, 3ds, switch, vwii, wii, all",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -337,8 +346,13 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 		case "content":
 			allowedFormats = []string{"Content"}
 		default:
-			http.Error(w, "Invalid format", http.StatusBadRequest)
-			return
+		response := map[string]interface{}{
+			"error": "Invalid format. Supported: cia, 3ds, nsp, xci, iso, wbfs, content, all",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
 		}
 
 		filtered := make([]wiiudownloader.TitleEntry, 0)
@@ -365,7 +379,12 @@ func (s *Server) handleListTitles(w http.ResponseWriter, r *http.Request) {
 		case "europe":
 			regionMask = wiiudownloader.MCP_REGION_EUROPE
 		default:
-			http.Error(w, "Invalid region", http.StatusBadRequest)
+			response := map[string]interface{}{
+				"error": "Invalid region. Supported: japan, usa, europe, all",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -418,13 +437,23 @@ func (s *Server) handleGetTitle(w http.ResponseWriter, r *http.Request) {
 	// Parse title ID
 	tid, err := strconv.ParseUint(id, 16, 64)
 	if err != nil {
-		http.Error(w, "Invalid title ID format", http.StatusBadRequest)
+		response := map[string]interface{}{
+			"error": "Invalid title ID format. Must be 16-digit hexadecimal.",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	entry := wiiudownloader.GetTitleEntryFromTid(tid)
 	if entry.TitleID == 0 {
-		http.Error(w, "Title not found", http.StatusNotFound)
+		response := map[string]interface{}{
+			"error": "Title not found",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -620,7 +649,7 @@ func (s *Server) processDownload(job *DownloadJob) {
 }
 
 func main() {
-	port := flag.String("port", "8080", "Port to run the server on")
+	port := flag.String("port", "11235", "Port to run the server on")
 	downloadsDir := flag.String("downloads", "./downloads", "Directory to store downloads")
 	flag.Parse()
 

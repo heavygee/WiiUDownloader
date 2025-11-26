@@ -18,7 +18,7 @@ docker run -p 8080:8080 -v $(pwd)/downloads:/downloads wiiu-api:latest
 ```
 
 ### API Base URL
-- **Direct**: `http://localhost:8080/api/`
+- **Direct**: `http://localhost:11235/api/`
 - **With nginx proxy**: `http://localhost/api/`
 
 ### OpenAPI Specification

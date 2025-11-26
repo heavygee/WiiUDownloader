@@ -5,7 +5,7 @@
 
 set -e
 
-API_BASE=${API_BASE:-"http://localhost:8080/api"}
+API_BASE=${API_BASE:-"http://localhost:11235/api"}
 QUIET=${QUIET:-false}
 
 # Colors for output
