@@ -50,8 +50,23 @@ chmod +x WiiUDownloader-Linux-x86_64.AppImage   # For Linux
 
 This program is distributed under the GPLv3 License. For more information, see the [LICENSE](LICENSE) file.
 
+## Testing
+
+Run the test suite to verify functionality:
+
+```bash
+# Unit tests
+cd cmd/wiiu-api && go test -v
+
+# Integration tests (requires running API server)
+./test-api.sh
+```
+
+See [TESTING.md](TESTING.md) for detailed testing instructions.
+
 ## Acknowledgments
 
 WiiUDownloader uses several open-source libraries and dependencies to provide its functionality:
 
-- [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3): Go bindings for GTK+3.
+- [github.com/gorilla/mux](https://github.com/gorilla/mux): HTTP router for the API
+- [github.com/gotk3/gotk3](https://github.com/gotk3/gotk3): Go bindings for GTK+3 (GUI version).
